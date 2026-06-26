@@ -16,14 +16,19 @@ const CCOK: &str = "\x1b[32m";
 const CCERR: &str = "\x1b[31m";
 
 fn print_help() {
-    eprintln!("c — 命令缓存与执行工具");
+    eprintln!("c — command cache & runner");
     eprintln!();
-    eprintln!("用法:");
-    eprintln!("  c                     \x1b[2m进入交互模式，选择执行历史命令\x1b[0m");
-    eprintln!("  c <数字>              \x1b[2m快速执行指定编号的历史命令\x1b[0m");
-    eprintln!("  c <命令...>           \x1b[2m记录并执行命令\x1b[0m");
-    eprintln!("  c -h, --help          \x1b[2m显示此帮助信息\x1b[0m");
-    eprintln!("  c -d, --clear         \x1b[2m清除当前目录的历史记录\x1b[0m");
+    eprintln!("Usage:");
+    eprintln!("  c                     \x1b[2minteractive mode — browse & pick history\x1b[0m");
+    eprintln!("  c <number>            \x1b[2mquick-select history entry by number\x1b[0m");
+    eprintln!("  c <command...>        \x1b[2mrecord and run a command\x1b[0m");
+    eprintln!("  c -h, --help          \x1b[2mshow this help\x1b[0m");
+    eprintln!("  c -d, --clear         \x1b[2mclear history for this directory\x1b[0m");
+    eprintln!("  c -s <query>          \x1b[2mfuzzy-search history\x1b[0m");
+    eprintln!("  c -a                  \x1b[2mstats: most frequent & most recent\x1b[0m");
+    eprintln!("  c -g                  \x1b[2mglobal scope (all directories)\x1b[0m");
+    eprintln!("  c -l <N>              \x1b[2mlimit entries shown (default 10)\x1b[0m");
+    eprintln!("  c -sag <query>        \x1b[2mcombined flags: search + stats + global\x1b[0m");
 }
 
 fn run() -> crate::error::Result<()> {
@@ -35,7 +40,7 @@ fn run() -> crate::error::Result<()> {
         CliMode::Interactive => {
             let records = load_commands(&current_dir)?;
             if records.is_empty() {
-                eprintln!("{CCI}当前目录暂无历史记录");
+                eprintln!("{CCI}no history for this directory");
                 return Ok(());
             }
             interactive::run(&records)
@@ -44,21 +49,21 @@ fn run() -> crate::error::Result<()> {
         CliMode::QuickSelect(num) => {
             let records = load_commands(&current_dir)?;
             if records.is_empty() {
-                eprintln!("{CCERR}当前目录暂无历史记录");
+                eprintln!("{CCERR}no history for this directory");
                 std::process::exit(1);
             }
             let idx = num as usize;
             if idx == 0 || idx > records.len() {
-                eprintln!("{CCERR}编号 {} 超出范围（1-{}）", num, records.len());
+                eprintln!("{CCERR}entry {} out of range (1-{})", num, records.len());
                 std::process::exit(1);
             }
             let record = &records[idx - 1];
-            eprintln!("{CCI}当前路径: {}", current_dir.display());
-            eprintln!("{CCI}执行: {}", record.command);
+            eprintln!("{CCI}cwd: {}", current_dir.display());
+            eprintln!("{CCI}running: {}", record.command);
             eprintln!("\x1b[2m------------------------\x1b[0m");
             run_command(&record.command)?;
             eprintln!("\x1b[2m------------------------\x1b[0m");
-            eprintln!("{CCOK}命令执行成功");
+            eprintln!("{CCOK}command succeeded");
             Ok(())
         }
 
@@ -74,13 +79,13 @@ fn run() -> crate::error::Result<()> {
                 print_help();
             }
             if clear_history {
-                eprint!("{CCI}确认清除当前目录历史记录？(y/N): ");
+                eprint!("{CCI}clear history for this directory? (y/N): ");
                 std::io::stderr().flush().ok();
                 let mut input = String::new();
                 std::io::stdin().read_line(&mut input).ok();
                 if input.trim().eq_ignore_ascii_case("y") {
                     clear_commands(&current_dir)?;
-                    eprintln!("{CCOK}已清除当前目录的历史记录");
+                    eprintln!("{CCOK}history cleared for this directory");
                 }
             }
 
@@ -104,7 +109,7 @@ fn run() -> crate::error::Result<()> {
             };
 
             if records.is_empty() {
-                eprintln!("{CCI}当前{}暂无历史记录", if global { "全局" } else { "目录" });
+                eprintln!("{CCI}no history for {}", if global { "any directory" } else { "this directory" });
                 return Ok(());
             }
 
@@ -120,7 +125,7 @@ fn run() -> crate::error::Result<()> {
             };
 
             if filtered.is_empty() {
-                eprintln!("{CCI}没有匹配的历史记录");
+                eprintln!("{CCI}no matching history");
                 return Ok(());
             }
 
@@ -136,7 +141,7 @@ fn run() -> crate::error::Result<()> {
                     .into_iter().map(|s| s.latest_record).collect();
 
                 if freq_top.is_empty() && recent_top.is_empty() {
-                    eprintln!("{CCI}没有匹配的历史记录");
+                    eprintln!("{CCI}no matching history");
                     return Ok(());
                 }
                 interactive::run_stats(&freq_top, &recent_top)?;
@@ -151,13 +156,13 @@ fn run() -> crate::error::Result<()> {
             let command = format_args_for_shell(&cmd_args);
             let record = CommandRecord::new(command.clone(), current_dir.clone());
 
-            eprintln!("{CCI}当前路径: {}", current_dir.display());
-            eprintln!("{CCI}捕获的命令: {}", record.command);
+            eprintln!("{CCI}cwd: {}", current_dir.display());
+            eprintln!("{CCI}captured: {}", record.command);
             eprintln!("\x1b[2m------------------------\x1b[0m");
             run_command(&record.command)?;
             save_command(&record.command, &record.dir)?;
             eprintln!("\x1b[2m------------------------\x1b[0m");
-            eprintln!("{CCOK}命令执行成功");
+            eprintln!("{CCOK}command succeeded");
             Ok(())
         }
     }
@@ -165,7 +170,7 @@ fn run() -> crate::error::Result<()> {
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("{CCERR}错误: {}", e);
+        eprintln!("{CCERR}error: {}", e);
         std::process::exit(1);
     }
 }

@@ -1,15 +1,21 @@
 # conmand_cache
 
+> [中文](README.md)
+
 A lightweight command history tool that lets you **browse, search, and reuse** commands you've run in your terminal.
 
 ## Features
 
 - **Command recording**: intercepts `c <command>`, logs it to `~/.cc_history` on success
-- **Interactive mode**: run `c` with no arguments for a pickable menu of recent commands (10 per directory)
+- **Interactive mode**: run `c` with no arguments for a pickable menu of recent commands
 - **Quick select**: `c 2` runs history entry #2 directly, no menu needed
-- **Pipeline support**: wrap a pipeline in single quotes for raw `sh -c` passthrough — `c 'curl ... | jq'`
+- **Fuzzy search**: `c -s <query>` searches history with fuzzy matching (supports POSIX combined flags like `-sag`)
+- **Stats mode**: `c -a` shows two ranked views — most frequent commands and most recent commands
+- **Global scope**: `c -g` queries history across all directories instead of just the current one
+- **Limit control**: `c -l <N>` controls how many entries to load (default 10; stats top N = N/2)
+- **Pipeline support**: wrap in single quotes for raw `sh -c` passthrough — `c 'curl ... | jq'`
 - **Shell-safe**: multi-argument mode auto-escapes spaces, `$`, backticks, and other special characters
-- **History management**: `c -d` clears the current directory's history (with confirmation), `c -h` shows help
+- **History management**: `c -d` clears current directory's history (with confirmation)
 - Cross-platform: Linux, macOS, Windows (auto-detects `sh` or `cmd`)
 
 ## History File Format
@@ -18,7 +24,7 @@ A lightweight command history tool that lets you **browse, search, and reuse** c
 [2026-06-25 10:22:09](/Users/zhangchao/project) ls -la
 ```
 
-The file is stored at `~/.cc_history`. Entries are grouped by directory; interactive mode shows only entries for the current directory.
+Stored at `~/.cc_history`. Entries are grouped by directory; interactive mode shows only entries for the current directory (use `-g` for global).
 
 ## Installation
 
@@ -28,14 +34,9 @@ cd conmand_cache
 cargo install --path .
 ```
 
-Two binaries are produced:
+Installs a single binary: `c`.
 
-| Command | Description |
-|---------|-------------|
-| `c` | Primary command, short and convenient |
-| `conmand_cache` | Full package name alias |
-
-> **Note:** The binary name `c` is short and unlikely to conflict with system commands. If `c` is already taken in your environment, use `conmand_cache` instead.
+> **Note:** The binary name `c` is short and unlikely to conflict with system commands. If `c` is already taken in your environment, you can alias `conmand_cache` (see below).
 
 ## Usage
 
@@ -62,11 +63,11 @@ c 'cat file.txt | sort | uniq'
 Run `c` with no arguments to enter the interactive menu:
 
 ```text
-最近命令记录:
+recent commands:
 【1】echo hello | tr a-z A-Z
 【2】curl "https://api.example.com/data" | jq
 ────────────────────
-输入编号执行(q 退出):
+enter number to run (q quit):
 ```
 
 Type a number to run that command, or `q` to quit.
@@ -75,20 +76,63 @@ Type a number to run that command, or `q` to quit.
 
 `c 1` runs history entry #1 directly. Any pure-number argument is treated as a quick-select.
 
+### Fuzzy search
+
+```bash
+c -s git              # fuzzy search commands matching "git"
+c -s gpo              # subsequence match — finds "git push origin"
+c -sg cargo           # search + global scope
+```
+
+Results are ordered by match relevance. Type a number to run.
+
+### Stats mode
+
+Shows two ranked views of your command history, each with consecutive numbering:
+
+```text
+━━━ Most Frequent ━━━
+【1】git push origin main
+【2】cargo build
+...
+【5】echo hello
+
+━━━ Most Recent ━━━
+【6】cargo test
+【7】npm run dev
+...
+【10】cargo build
+```
+
+Combine with search and global:
+
+```bash
+c -a                  # stats for current directory
+c -ag                 # stats across all directories
+c -sa git             # search + stats on results
+c -sag cargo          # search + stats + global
+```
+
+### Limit control
+
+```bash
+c -l 20               # load 20 entries (default 10)
+c -al 20              # stats mode with top = 10
+c -sal git 20         # search + stats + limit
+```
+
 ### Management
 
 ```bash
 c -h                  # show help
-c --help              # same
 c -d                  # clear current directory's history (with confirmation)
-c --clear             # same
 ```
 
 ## Shell Quoting Strategy
 
 | Arguments | Behavior | Example |
 |-----------|----------|---------|
-| None | Enter interactive selection mode | `c` |
+| None | Interactive selection mode | `c` |
 | Single | Raw passthrough to `sh -c` — preserves pipes, variables, redirects | `c 'echo $HOME \| grep home'` |
 | Multiple | Each argument escaped individually, then joined | `c echo '$HOME'` → literal `$HOME` |
 
@@ -96,25 +140,22 @@ c --clear             # same
 
 ## Uninstall
 
-### Method 1: cargo uninstall
-
 ```bash
 cargo uninstall conmand_cache
 ```
 
-Removes both `c` and `conmand_cache`.
-
-### Method 2: Manual removal
+Or remove manually:
 
 ```bash
-rm ~/.cargo/bin/c               # remove c only
-rm ~/.cargo/bin/conmand_cache    # remove conmand_cache only
+rm ~/.cargo/bin/c
 ```
+
+Note: `cargo uninstall conmand_cache` removes the `c` binary.
 
 ## Development
 
 ```bash
-cargo test         # run tests (55+ test cases)
+cargo test         # run tests (106+ test cases)
 cargo check        # type-check
 cargo build        # compile
 ```
