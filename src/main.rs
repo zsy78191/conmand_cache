@@ -4,7 +4,7 @@ mod model;
 mod store;
 
 use cmd::runner::run_command;
-use model::{CommandFormatter, CommandRecord, SimpleFormatter};
+use model::{CommandFormatter, CommandRecord, ShellEscapeFormatter};
 use store::history::save_command;
 
 fn run() -> crate::error::Result<()> {
@@ -14,7 +14,7 @@ fn run() -> crate::error::Result<()> {
         std::process::exit(1);
     }
 
-    let formatter = SimpleFormatter;
+    let formatter = ShellEscapeFormatter;
     let arg_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     let command = formatter.format(&arg_refs);
 
