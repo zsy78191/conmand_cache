@@ -109,7 +109,7 @@ std::env::args()
 
 新增依赖：
 ```toml
-shell-escape = "0.2"
+shell-escape = "0.1"
 ```
 
 ### `src/model/format.rs`

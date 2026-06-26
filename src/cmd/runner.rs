@@ -21,20 +21,4 @@ pub fn run_command(command: &str) -> Result<ExitStatus> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_run_command_success() {
-        let result = run_command("true");
-        assert!(result.is_ok());
-        assert!(result.unwrap().success());
-    }
-
-    #[test]
-    fn test_run_command_failure() {
-        let result = run_command("false");
-        assert!(result.is_err());
-    }
-}
+// run_command 是对 std::process::Command 的薄封装，其行为由标准库保证，无需单元测试

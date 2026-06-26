@@ -9,6 +9,11 @@ const CCERR: &str = "\x1b[31mcc |\x1b[0m ";
 /// Enter interactive mode: display a numbered menu, let user pick by number.
 /// Returns Ok(()) if user quits (q) or after executing a selected command.
 pub fn run(records: &[CommandRecord]) -> Result<()> {
+    if records.is_empty() {
+        eprintln!("{CCERR}没有历史命令记录");
+        return Ok(());
+    }
+
     loop {
         eprintln!("{CCI}最近命令记录:");
         for (i, record) in records.iter().enumerate() {
@@ -22,7 +27,7 @@ pub fn run(records: &[CommandRecord]) -> Result<()> {
         std::io::stdin().read_line(&mut input).ok();
         let input = input.trim();
 
-        if input == "q" {
+        if input == "q" || input.is_empty() {
             return Ok(());
         }
 
