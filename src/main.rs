@@ -1,6 +1,7 @@
 mod cli;
 mod cmd;
 mod error;
+mod interactive;
 mod model;
 mod store;
 
