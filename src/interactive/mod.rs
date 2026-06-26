@@ -3,24 +3,26 @@ use crate::cmd::runner::run_command;
 use crate::error::Result;
 use crate::model::CommandRecord;
 
-const CCI: &str = "\x1b[36mcc |\x1b[0m ";
-const CCERR: &str = "\x1b[31mcc |\x1b[0m ";
+const DIM: &str = "\x1b[2m";
+const CYAN: &str = "\x1b[36m";
+const RED: &str = "\x1b[31m";
+const RST: &str = "\x1b[0m";
 
 /// Enter interactive mode: display a numbered menu, let user pick by number.
 /// Returns Ok(()) if user quits (q) or after executing a selected command.
 pub fn run(records: &[CommandRecord]) -> Result<()> {
     if records.is_empty() {
-        eprintln!("{CCERR}没有历史命令记录");
+        eprintln!("{RED}没有历史命令记录{RST}");
         return Ok(());
     }
 
     loop {
-        eprintln!("{CCI}最近命令记录:");
+        eprintln!("{DIM}最近命令记录:{RST}");
         for (i, record) in records.iter().enumerate() {
-            eprintln!("{CCI}  {}  {}", i + 1, record.command);
+            eprintln!("{CYAN}【{}】{RST}{}", i + 1, record.command);
         }
-        eprintln!("\x1b[2mcc | ------------------------\x1b[0m");
-        eprint!("{CCI}输入编号执行(q 退出): ");
+        eprintln!("{DIM}────────────────────{RST}");
+        eprint!("{DIM}输入编号执行(q 退出): {RST}");
         std::io::stderr().flush().ok();
 
         let mut input = String::new();
@@ -34,14 +36,13 @@ pub fn run(records: &[CommandRecord]) -> Result<()> {
         if let Ok(num) = input.parse::<usize>() {
             if num >= 1 && num <= records.len() {
                 let cmd = &records[num - 1].command;
-                eprintln!("{CCI}执行: {}", cmd);
-                eprintln!("\x1b[2mcc | ------------------------\x1b[0m");
+                eprintln!("{DIM}执行: {RST}{}", cmd);
+                eprintln!("{DIM}────────────────────{RST}");
                 run_command(cmd)?;
                 return Ok(());
             }
         }
 
-        eprintln!("{CCERR}无效输入，请输入编号或 q");
-        // loop re-displays the menu
+        eprintln!("{RED}无效输入，请输入编号或 q{RST}");
     }
 }
