@@ -1,5 +1,5 @@
 pub mod format;
-pub use format::{format_args_for_shell, CommandFormatter, ShellEscapeFormatter};
+pub use format::{format_args_for_shell, CommandFormatter};
 
 use std::path::PathBuf;
 
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_shell_escape_formatter_basic() {
-        let formatter = ShellEscapeFormatter;
+        let formatter = format::ShellEscapeFormatter;
         let args = vec!["echo", "hello"];
         assert_eq!(formatter.format(&args), "echo hello");
     }
