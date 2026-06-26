@@ -16,14 +16,14 @@ const CCOK: &str = "\x1b[32m";
 const CCERR: &str = "\x1b[31m";
 
 fn print_help() {
-    eprintln!("{CCI}c — 命令缓存与执行工具");
-    eprintln!("{CCI}");
-    eprintln!("{CCI}用法:");
-    eprintln!("{CCI}  c                     进入交互模式，选择执行历史命令");
-    eprintln!("{CCI}  c <数字>              快速执行指定编号的历史命令");
-    eprintln!("{CCI}  c <命令...>           记录并执行命令");
-    eprintln!("{CCI}  c -h, --help          显示此帮助信息");
-    eprintln!("{CCI}  c -d, --clear         清除当前目录的历史记录");
+    eprintln!("c — 命令缓存与执行工具");
+    eprintln!();
+    eprintln!("用法:");
+    eprintln!("  c                     进入交互模式，选择执行历史命令");
+    eprintln!("  c <数字>              快速执行指定编号的历史命令");
+    eprintln!("  c <命令...>           记录并执行命令");
+    eprintln!("  c -h, --help          显示此帮助信息");
+    eprintln!("  c -d, --clear         清除当前目录的历史记录");
 }
 
 fn run() -> crate::error::Result<()> {
