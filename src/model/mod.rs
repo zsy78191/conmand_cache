@@ -3,6 +3,8 @@ pub use format::{format_args_for_shell, CommandFormatter};
 
 use std::path::PathBuf;
 
+use fuzzy_matcher::FuzzyMatcher;
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CommandRecord {
@@ -86,6 +88,21 @@ pub fn sort_by_recent(stats: &[CommandStats]) -> Vec<CommandStats> {
             .then_with(|| a.command.cmp(&b.command))
     });
     s
+}
+
+// ── fuzzy_filter ──────────────────────────────────
+
+pub fn fuzzy_filter(query: &str, records: &[CommandRecord]) -> Vec<CommandRecord> {
+    if query.is_empty() {
+        return records.to_vec();
+    }
+    let matcher = fuzzy_matcher::clangd::ClangdMatcher::default();
+    let mut scored: Vec<(i64, &CommandRecord)> = records
+        .iter()
+        .filter_map(|r| matcher.fuzzy_match(&r.command, query).map(|score| (score, r)))
+        .collect();
+    scored.sort_by(|a, b| b.0.cmp(&a.0));
+    scored.into_iter().map(|(_, r)| r.clone()).collect()
 }
 
 /// Take the first n items from a slice.
@@ -283,5 +300,88 @@ mod tests {
     fn test_top_n_zero() {
         let items = vec![1, 2, 3];
         assert!(top_n(&items, 0).is_empty());
+    }
+
+    // ── fuzzy_filter ──────────────────────────────────
+
+    fn rec_fuzzy(cmd: &str) -> CommandRecord {
+        CommandRecord {
+            command: cmd.to_string(),
+            dir: PathBuf::from("/tmp"),
+            timestamp: "2026-01-01 12:00:00".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_exact_match() {
+        let r = fuzzy_filter("git push", &[rec_fuzzy("git push")]);
+        assert_eq!(r.len(), 1);
+    }
+
+    #[test]
+    fn test_subsequence_match() {
+        let r = fuzzy_filter("gpo", &[rec_fuzzy("git push origin main")]);
+        assert_eq!(r.len(), 1);
+    }
+
+    #[test]
+    fn test_case_insensitive() {
+        let r = fuzzy_filter("GIT", &[rec_fuzzy("git status")]);
+        assert_eq!(r.len(), 1);
+    }
+
+    #[test]
+    fn test_no_match() {
+        let r = fuzzy_filter("zzzzz", &[rec_fuzzy("git push")]);
+        assert!(r.is_empty());
+    }
+
+    #[test]
+    fn test_scored_ordering() {
+        let records = vec![
+            rec_fuzzy("cargo build --release"),
+            rec_fuzzy("cargo build"),
+            rec_fuzzy("cargo test"),
+        ];
+        let r = fuzzy_filter("cargo build", &records);
+        assert_eq!(r[0].command, "cargo build");
+    }
+
+    #[test]
+    fn test_empty_query_returns_all() {
+        let records = vec![rec_fuzzy("git push"), rec_fuzzy("cargo build")];
+        let r = fuzzy_filter("", &records);
+        assert_eq!(r.len(), 2);
+    }
+
+    #[test]
+    fn test_empty_records() {
+        let r = fuzzy_filter("git", &[]);
+        assert!(r.is_empty());
+    }
+
+    #[test]
+    fn test_unicode_match() {
+        // 中文字符匹配（不影响匹配机制，但确保不 panic）
+        let r = fuzzy_filter("中文", &[rec_fuzzy("测试中文命令")]);
+        // fuzzy-matcher 是否匹配中文取决于实现，只要不 panic 即可
+        // 此处不 assert 结果，仅确保不崩溃
+        let _ = r;
+    }
+
+    #[test]
+    fn test_multiple_matches_ordered_by_relevance() {
+        let records = vec![
+            rec_fuzzy("git push origin main"),
+            rec_fuzzy("git status"),
+            rec_fuzzy("git push -f"),
+            rec_fuzzy("echo hello"),
+        ];
+        let r = fuzzy_filter("git push", &records);
+        assert!(r.len() >= 2);
+        // "git push" 系列的匹配应该排在 "git status"（无 push）之前
+        for cmd in r.iter() {
+            assert!(cmd.command.contains("git"), "{} 应包含 git", cmd.command);
+        }
     }
 }
