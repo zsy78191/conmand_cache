@@ -1,5 +1,5 @@
 pub mod format;
-pub use format::{CommandFormatter, SimpleFormatter, ShellEscapeFormatter};
+pub use format::{CommandFormatter, ShellEscapeFormatter};
 
 use std::path::PathBuf;
 
@@ -53,8 +53,8 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_formatter_basic() {
-        let formatter = SimpleFormatter;
+    fn test_shell_escape_formatter_basic() {
+        let formatter = ShellEscapeFormatter;
         let args = vec!["echo", "hello"];
         assert_eq!(formatter.format(&args), "echo hello");
     }
