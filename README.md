@@ -6,12 +6,12 @@
 
 ## 功能
 
-- **命令记录**：拦截 `cc <命令>` 的执行，命令成功执行后写入 `~/.cc_history`
-- **交互模式**：直接执行 `cc` 进入交互选择菜单，查看当前目录最近 10 条历史
-- **快速选择**：`cc 2` 直接执行编号为 2 的历史命令，无需进入菜单
-- **管道支持**：用单引号包裹整条管道命令，`cc 'curl ... | jq'` 原样传给子 shell
+- **命令记录**：拦截 `c <命令>` 的执行，命令成功执行后写入 `~/.cc_history`
+- **交互模式**：直接执行 `c` 进入交互选择菜单，查看当前目录最近 10 条历史
+- **快速选择**：`c 2` 直接执行编号为 2 的历史命令，无需进入菜单
+- **管道支持**：用单引号包裹整条管道命令，`c 'curl ... | jq'` 原样传给子 shell
 - **Shell 安全**：多参数模式自动转义空格、`$`、反引号等特殊字符
-- **历史管理**：`cc -d` 清除当前目录记录（需二次确认），`cc -h` 查看帮助
+- **历史管理**：`c -d` 清除当前目录记录（需二次确认），`c -h` 查看帮助
 - 跨平台支持：Linux、macOS、Windows（自动选择 `sh` 或 `cmd`）
 
 ## 历史文件格式
@@ -34,19 +34,19 @@ cargo install --path .
 
 | 命令名 | 说明 |
 |--------|------|
-| `cc` | 主命令 |
+| `c` | 主命令 |
 | `conmand_cache` | 与包名相同的完整命令 |
 
-> **注意：** `cc` 在 macOS 上也是 C 编译器（clang）的标准名称。安装后 `~/.cargo/bin` 排在前面的情况下，`cc` 指向本工具。日常影响极小——极少有人直接敲 `cc` 编译 C 文件。如需调用 C 编译器，请使用 `clang` 或 `/usr/bin/cc`。
+> **注意：** 二进制名 `c` 通常不会与系统命令冲突。如果你的环境里 `c` 已被占用，可以用 `conmand_cache` 代替。
 
 ## 使用
 
 ### 记录并执行命令
 
 ```bash
-cc ls -la              # 执行 ls -la 并记录
-cc cargo test          # 执行 cargo test 并记录
-cc echo hello          # 简单命令
+c ls -la              # 执行 ls -la 并记录
+c cargo test          # 执行 cargo test 并记录
+c echo hello          # 简单命令
 ```
 
 ### 带管道的命令
@@ -54,14 +54,14 @@ cc echo hello          # 简单命令
 用单引号包裹整条命令，原样传给 `sh -c` 执行：
 
 ```bash
-cc 'curl "https://api.example.com/data" | jq .items'
-cc 'echo hello | tr a-z A-Z'
-cc 'cat file.txt | sort | uniq'
+c 'curl "https://api.example.com/data" | jq .items'
+c 'echo hello | tr a-z A-Z'
+c 'cat file.txt | sort | uniq'
 ```
 
 ### 交互模式
 
-直接执行 `cc` 进入交互菜单，查看当前目录最近 10 条命令：
+直接执行 `c` 进入交互菜单，查看当前目录最近 10 条命令：
 
 ```text
 最近命令记录:
@@ -75,26 +75,26 @@ cc 'cat file.txt | sort | uniq'
 
 ### 快速选择
 
-`cc 1` 直接执行编号 1 的历史命令，无需进入菜单。纯数字参数被识别为快速选择。
+`c 1` 直接执行编号 1 的历史命令，无需进入菜单。纯数字参数被识别为快速选择。
 
 ### 管理
 
 ```bash
-cc -h                  # 显示帮助
-cc --help              # 同上
-cc -d                  # 清除当前目录的历史记录（需二次确认）
-cc --clear             # 同上
+c -h                  # 显示帮助
+c --help              # 同上
+c -d                  # 清除当前目录的历史记录（需二次确认）
+c --clear             # 同上
 ```
 
 ## Shell 引用策略
 
 | 参数数量 | 行为 | 示例 |
 |---------|------|------|
-| 无参数 | 进入交互选择模式 | `cc` |
-| 单个参数 | 原样传给 `sh -c`，保留管道、变量、重定向 | `cc 'echo $HOME \| grep home'` |
-| 多个参数 | 逐个转义特殊字符后拼接 | `cc echo '$HOME'` → 输出字面量 `$HOME` |
+| 无参数 | 进入交互选择模式 | `c` |
+| 单个参数 | 原样传给 `sh -c`，保留管道、变量、重定向 | `c 'echo $HOME \| grep home'` |
+| 多个参数 | 逐个转义特殊字符后拼接 | `c echo '$HOME'` → 输出字面量 `$HOME` |
 
-**经验法则**：需要 shell 特性（管道、变量展开、重定向）时用单引号包裹整条命令；否则让 cc 自动处理转义。
+**经验法则**：需要 shell 特性（管道、变量展开、重定向）时用单引号包裹整条命令；否则让 `c` 自动处理转义。
 
 ## 卸载
 
@@ -104,12 +104,12 @@ cc --clear             # 同上
 cargo uninstall conmand_cache
 ```
 
-同时删除 `cc` 和 `conmand_cache`。
+同时删除 `c` 和 `conmand_cache`。
 
 ### 方法二：手动删除单个命令
 
 ```bash
-rm ~/.cargo/bin/cc           # 只删 cc
+rm ~/.cargo/bin/c              # 只删 c
 rm ~/.cargo/bin/conmand_cache # 只删 conmand_cache
 ```
 
