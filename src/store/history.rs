@@ -9,8 +9,7 @@ const HISTORY_FILE: &str = ".cc_history";
 const TIMESTAMP_FORMAT: &str = "%Y-%m-%d %H:%M:%S";
 
 pub fn save_command(command: &str, current_dir: &PathBuf) -> Result<()> {
-    let home_dir = std::env::var("HOME")?;
-    let history_path = PathBuf::from(home_dir).join(HISTORY_FILE);
+    let history_path = get_history_path();
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)

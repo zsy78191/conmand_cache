@@ -43,6 +43,10 @@ fn run() -> crate::error::Result<()> {
 
         CliMode::QuickSelect(num) => {
             let records = load_commands(&current_dir)?;
+            if records.is_empty() {
+                eprintln!("{CCERR}当前目录暂无历史记录");
+                std::process::exit(1);
+            }
             let idx = num as usize;
             if idx == 0 || idx > records.len() {
                 eprintln!("{CCERR}编号 {} 超出范围（1-{}）", num, records.len());

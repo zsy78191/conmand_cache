@@ -21,7 +21,7 @@ pub fn run(records: &[CommandRecord]) -> Result<()> {
         }
         eprintln!("\x1b[2mcc | ------------------------\x1b[0m");
         eprint!("{CCI}输入编号执行(q 退出): ");
-        std::io::stdout().flush().ok();
+        std::io::stderr().flush().ok();
 
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).ok();
