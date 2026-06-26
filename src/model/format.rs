@@ -149,6 +149,13 @@ mod tests {
     }
 
     #[test]
+    fn test_empty_args_slice() {
+        let f = ShellEscapeFormatter;
+        let args: Vec<&str> = vec![];
+        assert_eq!(f.format(&args), "");
+    }
+
+    #[test]
     fn test_long_safe_string() {
         let f = ShellEscapeFormatter;
         let args = vec!["echo", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"];

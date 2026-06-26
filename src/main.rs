@@ -10,7 +10,7 @@ use store::history::save_command;
 fn run() -> crate::error::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() {
-        eprintln!("用法: cc <命令>");
+        eprintln!("用法: c <命令>");
         std::process::exit(1);
     }
 
