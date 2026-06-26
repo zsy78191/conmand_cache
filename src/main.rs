@@ -1,3 +1,4 @@
+mod cli;
 mod cmd;
 mod error;
 mod model;
