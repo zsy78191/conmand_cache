@@ -11,9 +11,9 @@ use model::{format_args_for_shell, CommandRecord};
 use std::io::Write;
 use store::history::{clear_commands, load_commands, save_command};
 
-const CCI: &str = "\x1b[36mc |\x1b[0m ";
-const CCOK: &str = "\x1b[32mc |\x1b[0m ";
-const CCERR: &str = "\x1b[31mc |\x1b[0m ";
+const CCI: &str = "\x1b[36m";
+const CCOK: &str = "\x1b[32m";
+const CCERR: &str = "\x1b[31m";
 
 fn print_help() {
     eprintln!("{CCI}c — 命令缓存与执行工具");
@@ -55,9 +55,9 @@ fn run() -> crate::error::Result<()> {
             let record = &records[idx - 1];
             eprintln!("{CCI}当前路径: {}", current_dir.display());
             eprintln!("{CCI}执行: {}", record.command);
-            eprintln!("\x1b[2mc | ------------------------\x1b[0m");
+            eprintln!("\x1b[2m------------------------\x1b[0m");
             run_command(&record.command)?;
-            eprintln!("\x1b[2mc | ------------------------\x1b[0m");
+            eprintln!("\x1b[2m------------------------\x1b[0m");
             eprintln!("{CCOK}命令执行成功");
             Ok(())
         }
@@ -88,10 +88,10 @@ fn run() -> crate::error::Result<()> {
 
             eprintln!("{CCI}当前路径: {}", current_dir.display());
             eprintln!("{CCI}捕获的命令: {}", record.command);
-            eprintln!("\x1b[2mc | ------------------------\x1b[0m");
+            eprintln!("\x1b[2m------------------------\x1b[0m");
             run_command(&record.command)?;
             save_command(&record.command, &record.dir)?;
-            eprintln!("\x1b[2mc | ------------------------\x1b[0m");
+            eprintln!("\x1b[2m------------------------\x1b[0m");
             eprintln!("{CCOK}命令执行成功");
             Ok(())
         }
