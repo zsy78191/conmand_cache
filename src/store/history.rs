@@ -419,4 +419,26 @@ mod tests {
         assert_eq!(records.len(), 5);
         std::fs::remove_file(&path).ok();
     }
+
+    #[test]
+    fn test_load_all_duplicates_kept() {
+        let dir = PathBuf::from("/dir");
+        let path = create_test_file("\
+[2026-01-01 12:00:00](/dir) cmd1
+[2026-01-02 12:00:00](/dir) cmd1
+[2026-01-03 12:00:00](/dir) cmd1");
+        let records = load_all_from_history(&path, &dir, 10).unwrap();
+        assert_eq!(records.len(), 3);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_global_keeps_all_dirs() {
+        let path = create_test_file("\
+[2026-01-01 12:00:00](/a) cmd1
+[2026-01-02 12:00:00](/b) cmd2");
+        let records = load_all_global_from_history(&path, 10).unwrap();
+        assert_eq!(records.len(), 2);
+        std::fs::remove_file(&path).ok();
+    }
 }

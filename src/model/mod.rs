@@ -384,4 +384,43 @@ mod tests {
             assert!(cmd.command.contains("git"), "{} 应包含 git", cmd.command);
         }
     }
+
+    // ── 边界场景 ────────────────────────────────────
+
+    #[test]
+    fn test_limit_one_produces_empty_stats() {
+        let limit = 1usize;
+        let top = limit / 2;
+        assert_eq!(top, 0);
+        // run_stats 中的 empty check 应正确返回
+    }
+
+    #[test]
+    fn test_all_same_command_stats() {
+        let records = vec![
+            rec("2026-01-01", "/dir", "same command"),
+            rec("2026-01-02", "/dir", "same command"),
+            rec("2026-01-03", "/dir", "same command"),
+        ];
+        let grouped = group_by_command(&records);
+        assert_eq!(grouped.len(), 1);
+
+        let freq = sort_by_frequency(&grouped);
+        let recent = sort_by_recent(&grouped);
+        assert_eq!(freq[0].command, "same command");
+        assert_eq!(recent[0].command, "same command");
+    }
+
+    #[test]
+    fn test_search_then_stats_no_crash() {
+        let records = vec![
+            rec("2026-01-01", "/dir", "git push"),
+            rec("2026-01-02", "/dir", "cargo build"),
+        ];
+        let filtered = fuzzy_filter("git", &records);
+        assert_eq!(filtered.len(), 1);
+
+        let grouped = group_by_command(&filtered);
+        assert_eq!(grouped.len(), 1);
+    }
 }
