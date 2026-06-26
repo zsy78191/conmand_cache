@@ -91,8 +91,7 @@ fn run() -> crate::error::Result<()> {
 
             // -s without search term -> error
             if search == Some(String::new()) {
-                eprintln!("{CCERR}-s 需要指定搜索词");
-                std::process::exit(1);
+                return Err(crate::error::Error::InvalidArgument);
             }
 
             let top_n_count = if stats { (limit as usize) / 2 } else { 0 };

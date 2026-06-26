@@ -132,28 +132,8 @@ pub fn parse_args(args: &[String]) -> CliMode {
                         }
                     }
                 }
-            // Known single-char short flags (-h, -d, -s, -a, -g, -l)
-            // Delegates to parse_combined_short_flags to avoid duplicating match logic.
-            } else if arg.len() == 2 && arg.starts_with('-') {
-                let token = &arg[1..];
-                match parse_combined_short_flags(token, args, &mut i) {
-                    Some(parsed) => {
-                        flags.show_help |= parsed.show_help;
-                        flags.clear_history |= parsed.clear_history;
-                        if parsed.search.is_some() {
-                            flags.search = parsed.search;
-                        }
-                        flags.stats |= parsed.stats;
-                        flags.global |= parsed.global;
-                        if parsed.limit.is_some() {
-                            flags.limit = parsed.limit;
-                        }
-                        has_flag = true;
-                    }
-                    None => return CliMode::Command(args.to_vec()),
-                }
             } else if arg.starts_with('-') {
-                // Multi-char after single `-`: combined short flags
+                // Single-char (-h) or combined (-sag) short flags.
                 let token = &arg[1..];
                 match parse_combined_short_flags(token, args, &mut i) {
                     Some(parsed) => {
