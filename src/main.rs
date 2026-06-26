@@ -7,10 +7,14 @@ use cmd::runner::run_command;
 use model::{format_args_for_shell, CommandRecord};
 use store::history::save_command;
 
+const CCI: &str = "\x1b[36mcc |\x1b[0m ";
+const CCOK: &str = "\x1b[32mcc |\x1b[0m ";
+const CCERR: &str = "\x1b[31mcc |\x1b[0m ";
+
 fn run() -> crate::error::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() {
-        eprintln!("用法: c <命令>");
+        eprintln!("{CCERR}用法: c <命令>");
         std::process::exit(1);
     }
 
@@ -20,21 +24,21 @@ fn run() -> crate::error::Result<()> {
     let record = CommandRecord::new(command.clone(), current_dir.clone());
 
     eprintln!(
-        "当前路径: {}, 捕获的命令: {}",
+        "{CCI}当前路径: {}, 捕获的命令: {}",
         current_dir.display(),
         record.command
     );
 
     run_command(&record.command)?;
     save_command(&record.command, &record.dir)?;
-    eprintln!("命令执行成功");
+    eprintln!("{CCOK}命令执行成功");
 
     Ok(())
 }
 
 fn main() {
     if let Err(e) = run() {
-        eprintln!("错误: {}", e);
+        eprintln!("{CCERR}错误: {}", e);
         std::process::exit(1);
     }
 }
