@@ -109,6 +109,67 @@ fn clear_from_history(path: &Path, current_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+// ── create_test_file (test helper) ──────────────────────────────────
+
+#[cfg(test)]
+fn create_test_file(content: &str) -> PathBuf {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+    let dir = std::env::temp_dir();
+    let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+    let path = dir.join(format!("_test_history_{}_{}", std::process::id(), id));
+    std::fs::write(&path, content).unwrap();
+    path
+}
+
+// ── load_all ──────────────────────────────────────────────────────────
+
+/// Load history records matching current_dir, newest first, with limit.
+pub fn load_all_commands(current_dir: &PathBuf, limit: usize) -> Result<Vec<CommandRecord>> {
+    load_all_from_history(&get_history_path(), current_dir, limit)
+}
+
+/// Load all history records (global), newest first, with limit.
+pub fn load_all_global(limit: usize) -> Result<Vec<CommandRecord>> {
+    load_all_global_from_history(&get_history_path(), limit)
+}
+
+pub(crate) fn load_all_from_history(
+    path: &Path,
+    current_dir: &Path,
+    limit: usize,
+) -> Result<Vec<CommandRecord>> {
+    if !path.exists() {
+        return Ok(vec![]);
+    }
+    let content = std::fs::read_to_string(path)?;
+    let mut records: Vec<CommandRecord> = content
+        .lines()
+        .filter_map(parse_line)
+        .filter(|r| r.dir == current_dir)
+        .collect();
+    records.reverse(); // newest first
+    records.truncate(limit);
+    Ok(records)
+}
+
+pub(crate) fn load_all_global_from_history(
+    path: &Path,
+    limit: usize,
+) -> Result<Vec<CommandRecord>> {
+    if !path.exists() {
+        return Ok(vec![]);
+    }
+    let content = std::fs::read_to_string(path)?;
+    let mut records: Vec<CommandRecord> = content
+        .lines()
+        .filter_map(parse_line)
+        .collect();
+    records.reverse();
+    records.truncate(limit);
+    Ok(records)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -286,5 +347,76 @@ mod tests {
         std::fs::remove_file(&path).ok();
         // Should not panic or error
         assert!(clear_from_history(&path, &dir).is_ok());
+    }
+
+    // ── load_all_from_history / load_all_global_from_history ──
+
+    #[test]
+    fn test_load_all_returns_all_matching_dir() {
+        let dir = PathBuf::from("/dir_a");
+        let path = create_test_file("\
+[2026-01-01 12:00:00](/dir_a) cmd1
+[2026-01-02 12:00:00](/dir_b) cmd2
+[2026-01-03 12:00:00](/dir_a) cmd3");
+        let records = load_all_from_history(&path, &dir, 10).unwrap();
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].command, "cmd3"); // newest first
+        assert_eq!(records[1].command, "cmd1");
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_load_all_respects_limit() {
+        let dir = PathBuf::from("/dir");
+        let mut content = String::new();
+        for i in 0..20 {
+            content.push_str(&format!("[2026-01-{:02} 12:00:00](/dir) cmd{}\n", i + 1, i));
+        }
+        let path = create_test_file(&content);
+        let records = load_all_from_history(&path, &dir, 15).unwrap();
+        assert_eq!(records.len(), 15);
+        assert_eq!(records[0].command, "cmd19");
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_load_all_returns_empty_on_nonexistent() {
+        let dir = PathBuf::from("/tmp");
+        let path = PathBuf::from("/tmp/_nonexistent_test_file_xyz");
+        std::fs::remove_file(&path).ok();
+        let records = load_all_from_history(&path, &dir, 10).unwrap();
+        assert!(records.is_empty());
+    }
+
+    #[test]
+    fn test_load_all_limit_exceeds_available() {
+        let dir = PathBuf::from("/dir");
+        let content = "[2026-01-01 12:00:00](/dir) cmd1\n";
+        let path = create_test_file(content);
+        let records = load_all_from_history(&path, &dir, 100).unwrap();
+        assert_eq!(records.len(), 1);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_load_all_global_returns_all() {
+        let path = create_test_file("\
+[2026-01-01 12:00:00](/dir_a) cmd1
+[2026-01-02 12:00:00](/dir_b) cmd2");
+        let records = load_all_global_from_history(&path, 10).unwrap();
+        assert_eq!(records.len(), 2);
+        std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn test_load_all_global_respects_limit() {
+        let mut content = String::new();
+        for i in 0..20 {
+            content.push_str(&format!("[2026-01-{:02} 12:00:00](/dir) cmd{}\n", i + 1, i));
+        }
+        let path = create_test_file(&content);
+        let records = load_all_global_from_history(&path, 5).unwrap();
+        assert_eq!(records.len(), 5);
+        std::fs::remove_file(&path).ok();
     }
 }

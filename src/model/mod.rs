@@ -32,9 +32,86 @@ impl CommandRecord {
     }
 }
 
+// ── CommandStats ─────────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+pub struct CommandStats {
+    pub command: String,
+    pub count: usize,
+    pub latest_record: CommandRecord,
+}
+
+/// Group records by command name, tracking count and latest record.
+pub fn group_by_command(records: &[CommandRecord]) -> Vec<CommandStats> {
+    use std::collections::HashMap;
+    let mut map: HashMap<&str, (usize, &CommandRecord)> = HashMap::new();
+    for record in records {
+        let entry = map.entry(&record.command).or_insert((0, record));
+        entry.0 += 1;
+        // timestamp 格式为 YYYY-MM-DD HH:MM:SS，字符串比较即时间顺序
+        if record.timestamp > entry.1.timestamp {
+            entry.1 = record;
+        }
+    }
+    let mut result: Vec<CommandStats> = map
+        .into_iter()
+        .map(|(cmd, (count, rec))| CommandStats {
+            command: cmd.to_string(),
+            count,
+            latest_record: rec.clone(),
+        })
+        .collect();
+    result.sort_by(|a, b| a.command.cmp(&b.command));
+    result
+}
+
+/// Sort stats by frequency descending, tie-break by most recent timestamp.
+pub fn sort_by_frequency(stats: &[CommandStats]) -> Vec<CommandStats> {
+    let mut s = stats.to_vec();
+    s.sort_by(|a, b| {
+        b.count
+            .cmp(&a.count)
+            .then_with(|| b.latest_record.timestamp.cmp(&a.latest_record.timestamp))
+    });
+    s
+}
+
+/// Sort stats by most recent timestamp descending, tie-break by command name.
+pub fn sort_by_recent(stats: &[CommandStats]) -> Vec<CommandStats> {
+    let mut s = stats.to_vec();
+    s.sort_by(|a, b| {
+        b.latest_record
+            .timestamp
+            .cmp(&a.latest_record.timestamp)
+            .then_with(|| a.command.cmp(&b.command))
+    });
+    s
+}
+
+/// Take the first n items from a slice.
+pub fn top_n<T: Clone>(items: &[T], n: usize) -> Vec<T> {
+    items.iter().take(n).cloned().collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn rec(timestamp: &str, dir: &str, cmd: &str) -> CommandRecord {
+        CommandRecord {
+            command: cmd.to_string(),
+            dir: PathBuf::from(dir),
+            timestamp: timestamp.to_string(),
+        }
+    }
+
+    fn stats(cmd: &str, count: usize, ts: &str) -> CommandStats {
+        CommandStats {
+            command: cmd.to_string(),
+            count,
+            latest_record: rec(ts, "/tmp", cmd),
+        }
+    }
 
     #[test]
     fn test_command_record_line_contains_command() {
@@ -57,5 +134,154 @@ mod tests {
         let formatter = format::ShellEscapeFormatter;
         let args = vec!["echo", "hello"];
         assert_eq!(formatter.format(&args), "echo hello");
+    }
+
+    // ── group_by_command ──────────────────────────────────
+
+    #[test]
+    fn test_group_identical_commands() {
+        let records = vec![
+            rec("2026-01-03 12:00:00", "/tmp", "git push"),
+            rec("2026-01-02 12:00:00", "/tmp", "cargo build"),
+            rec("2026-01-04 12:00:00", "/tmp", "git push"),
+            rec("2026-01-01 12:00:00", "/tmp", "echo hi"),
+            rec("2026-01-05 12:00:00", "/tmp", "cargo build"),
+            rec("2026-01-06 12:00:00", "/tmp", "git push"),
+        ];
+        let grouped = group_by_command(&records);
+        assert_eq!(grouped.len(), 3);
+
+        let gp = grouped.iter().find(|s| s.command == "git push").unwrap();
+        assert_eq!(gp.count, 3);
+        assert_eq!(gp.latest_record.timestamp, "2026-01-06 12:00:00");
+
+        let cb = grouped.iter().find(|s| s.command == "cargo build").unwrap();
+        assert_eq!(cb.count, 2);
+        assert_eq!(cb.latest_record.timestamp, "2026-01-05 12:00:00");
+
+        assert!(grouped.iter().any(|s| s.command == "echo hi" && s.count == 1));
+    }
+
+    #[test]
+    fn test_group_empty() {
+        assert!(group_by_command(&[]).is_empty());
+    }
+
+    #[test]
+    fn test_group_single_record() {
+        let grouped = group_by_command(&[rec("2026-01-01 12:00:00", "/tmp", "cmd")]);
+        assert_eq!(grouped.len(), 1);
+        assert_eq!(grouped[0].count, 1);
+    }
+
+    #[test]
+    fn test_group_all_same_command() {
+        let records = vec![
+            rec("2026-01-01 12:00:00", "/tmp", "same"),
+            rec("2026-01-02 12:00:00", "/tmp", "same"),
+            rec("2026-01-03 12:00:00", "/tmp", "same"),
+        ];
+        let grouped = group_by_command(&records);
+        assert_eq!(grouped.len(), 1);
+        assert_eq!(grouped[0].count, 3);
+        assert_eq!(grouped[0].latest_record.timestamp, "2026-01-03 12:00:00");
+    }
+
+    #[test]
+    fn test_group_all_different() {
+        let records = vec![
+            rec("2026-01-01 12:00:00", "/tmp", "a"),
+            rec("2026-01-02 12:00:00", "/tmp", "b"),
+            rec("2026-01-03 12:00:00", "/tmp", "c"),
+        ];
+        let grouped = group_by_command(&records);
+        assert_eq!(grouped.len(), 3);
+        assert!(grouped.iter().all(|s| s.count == 1));
+    }
+
+    // ── sort_by_frequency ─────────────────────────────────
+
+    #[test]
+    fn test_frequency_descending() {
+        let s = vec![stats("a", 1, "2026-01-01"), stats("b", 5, "2026-01-01"), stats("c", 3, "2026-01-01")];
+        let sorted = sort_by_frequency(&s);
+        assert_eq!(sorted[0].command, "b");
+        assert_eq!(sorted[1].command, "c");
+        assert_eq!(sorted[2].command, "a");
+    }
+
+    #[test]
+    fn test_frequency_empty() {
+        let sorted: Vec<CommandStats> = sort_by_frequency(&[]);
+        assert!(sorted.is_empty());
+    }
+
+    #[test]
+    fn test_frequency_tie_break_by_time() {
+        let s = vec![
+            stats("old", 2, "2026-01-01 12:00:00"),
+            stats("new", 2, "2026-02-01 12:00:00"),
+        ];
+        let sorted = sort_by_frequency(&s);
+        assert_eq!(sorted[0].command, "new");
+        assert_eq!(sorted[1].command, "old");
+    }
+
+    // ── sort_by_recent ────────────────────────────────────
+
+    #[test]
+    fn test_recent_descending() {
+        let s = vec![
+            stats("old", 1, "2026-01-01"),
+            stats("mid", 1, "2026-02-01"),
+            stats("new", 1, "2026-03-01"),
+        ];
+        let sorted = sort_by_recent(&s);
+        assert_eq!(sorted[0].command, "new");
+        assert_eq!(sorted[1].command, "mid");
+        assert_eq!(sorted[2].command, "old");
+    }
+
+    #[test]
+    fn test_recent_empty() {
+        let sorted: Vec<CommandStats> = sort_by_recent(&[]);
+        assert!(sorted.is_empty());
+    }
+
+    #[test]
+    fn test_recent_tie_break_by_command_name() {
+        let s = vec![
+            stats("bb", 1, "2026-01-01"),
+            stats("aa", 1, "2026-01-01"),
+        ];
+        let sorted = sort_by_recent(&s);
+        assert_eq!(sorted[0].command, "aa"); // 字典序
+        assert_eq!(sorted[1].command, "bb");
+    }
+
+    // ── top_n ─────────────────────────────────────────────
+
+    #[test]
+    fn test_top_n_returns_n() {
+        let items: Vec<i32> = (1..=10).collect();
+        assert_eq!(top_n(&items, 3), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_top_n_less_than_n() {
+        let items = vec![1, 2];
+        assert_eq!(top_n(&items, 5), vec![1, 2]);
+    }
+
+    #[test]
+    fn test_top_n_empty() {
+        let items: Vec<i32> = vec![];
+        assert!(top_n(&items, 5).is_empty());
+    }
+
+    #[test]
+    fn test_top_n_zero() {
+        let items = vec![1, 2, 3];
+        assert!(top_n(&items, 0).is_empty());
     }
 }
