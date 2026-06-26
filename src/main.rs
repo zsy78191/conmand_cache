@@ -19,11 +19,11 @@ fn print_help() {
     eprintln!("c — 命令缓存与执行工具");
     eprintln!();
     eprintln!("用法:");
-    eprintln!("  c                     进入交互模式，选择执行历史命令");
-    eprintln!("  c <数字>              快速执行指定编号的历史命令");
-    eprintln!("  c <命令...>           记录并执行命令");
-    eprintln!("  c -h, --help          显示此帮助信息");
-    eprintln!("  c -d, --clear         清除当前目录的历史记录");
+    eprintln!("  c                     \x1b[2m进入交互模式，选择执行历史命令\x1b[0m");
+    eprintln!("  c <数字>              \x1b[2m快速执行指定编号的历史命令\x1b[0m");
+    eprintln!("  c <命令...>           \x1b[2m记录并执行命令\x1b[0m");
+    eprintln!("  c -h, --help          \x1b[2m显示此帮助信息\x1b[0m");
+    eprintln!("  c -d, --clear         \x1b[2m清除当前目录的历史记录\x1b[0m");
 }
 
 fn run() -> crate::error::Result<()> {
