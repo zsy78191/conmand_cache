@@ -65,6 +65,7 @@ fn run() -> crate::error::Result<()> {
         CliMode::Flag {
             show_help,
             clear_history,
+            ..
         } => {
             if show_help {
                 print_help();
