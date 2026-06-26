@@ -110,12 +110,16 @@ fn clear_from_history(path: &Path, current_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-// 常量值由编译器和代码直接保证，无需单元测试断言
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn test_history_constants() {
+        assert_eq!(HISTORY_FILE, ".cc_history");
+        assert_eq!(TIMESTAMP_FORMAT, "%Y-%m-%d %H:%M:%S");
+    }
 
     // ── parse_line ─────────────────────────────────────────────
 
