@@ -1,0 +1,40 @@
+help:
+  title: "c — command cache & runner"
+  usage: "Usage:"
+  interactive: "interactive mode — browse & pick history"
+  quick_select: "quick-select history entry by number"
+  record: "record and run a command"
+  help: "show this help"
+  clear: "clear history for this directory"
+  search: "fuzzy-search history"
+  stats: "stats: most frequent & most recent"
+  global: "global scope (all directories)"
+  limit: "limit entries shown (default 10)"
+  combined: "combined flags: search + stats + global"
+
+interactive:
+  recent: "recent commands:"
+  enter_number: "enter number to run (q quit):"
+  invalid_input: "invalid input, enter number or q"
+  running_label: "running: "
+  most_frequent: "━━━ Most Frequent ━━━"
+  most_recent: "━━━ Most Recent ━━━"
+  no_history: "no history"
+  no_matching: "no matching history"
+
+msg:
+  no_history_dir: "no history for this directory"
+  no_history_global: "no history for any directory"
+  no_matching: "no matching history"
+  command_succeeded: "command succeeded"
+  history_cleared: "history cleared for this directory"
+  clear_prompt: "clear history for this directory?"
+  cwd: "cwd: %{path}"
+  captured: "captured: %{command}"
+  entry_out_of_range: "entry %{num} out of range (1-%{max})"
+
+error:
+  home_env: "HOME environment variable not set"
+  io: "I/O error: %{detail}"
+  command_failed: "command failed with exit code: %{code}"
+  invalid_arg: "`-s` requires a search term"

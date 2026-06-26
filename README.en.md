@@ -16,6 +16,7 @@ A lightweight command history tool that lets you **browse, search, and reuse** c
 - **Pipeline support**: wrap in single quotes for raw `sh -c` passthrough — `c 'curl ... | jq'`
 - **Shell-safe**: multi-argument mode auto-escapes spaces, `$`, backticks, and other special characters
 - **History management**: `c -d` clears current directory's history (with confirmation)
+- **Multi-language**: auto-switches between English and Chinese based on `LANG` env var
 - Cross-platform: Linux, macOS, Windows (auto-detects `sh` or `cmd`)
 
 ## History File Format
@@ -85,6 +86,21 @@ c -sg cargo           # search + global scope
 ```
 
 Results are ordered by match relevance. Type a number to run.
+
+### Multi-language support
+
+The UI language is auto-detected from the `LANG` environment variable:
+
+```bash
+LANG=en_US.UTF-8 c -h    # English (default)
+LANG=zh_CN.UTF-8 c -h    # Chinese
+```
+
+To force Chinese without changing your system language, set `C_LOCALE`:
+
+```bash
+export C_LOCALE=zh_CN     # only affects c, not your system
+```
 
 ### Stats mode
 

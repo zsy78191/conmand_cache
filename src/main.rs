@@ -5,30 +5,33 @@ mod interactive;
 mod model;
 mod store;
 
+rust_i18n::i18n!("locales");
+
 use cli::parser::{parse_args, CliMode};
 use cmd::runner::run_command;
 use model::{format_args_for_shell, CommandRecord};
 use std::io::Write;
 use store::history::{clear_commands, load_all_commands, load_all_global, load_commands, save_command};
+use rust_i18n::t;
 
 const CCI: &str = "\x1b[36m";
 const CCOK: &str = "\x1b[32m";
 const CCERR: &str = "\x1b[31m";
 
 fn print_help() {
-    eprintln!("c — command cache & runner");
+    eprintln!("{}", t!("help.title"));
     eprintln!();
-    eprintln!("Usage:");
-    eprintln!("  c                     \x1b[2minteractive mode — browse & pick history\x1b[0m");
-    eprintln!("  c <number>            \x1b[2mquick-select history entry by number\x1b[0m");
-    eprintln!("  c <command...>        \x1b[2mrecord and run a command\x1b[0m");
-    eprintln!("  c -h, --help          \x1b[2mshow this help\x1b[0m");
-    eprintln!("  c -d, --clear         \x1b[2mclear history for this directory\x1b[0m");
-    eprintln!("  c -s <query>          \x1b[2mfuzzy-search history\x1b[0m");
-    eprintln!("  c -a                  \x1b[2mstats: most frequent & most recent\x1b[0m");
-    eprintln!("  c -g                  \x1b[2mglobal scope (all directories)\x1b[0m");
-    eprintln!("  c -l <N>              \x1b[2mlimit entries shown (default 10)\x1b[0m");
-    eprintln!("  c -sag <query>        \x1b[2mcombined flags: search + stats + global\x1b[0m");
+    eprintln!("{}", t!("help.usage"));
+    eprintln!("  c                     \x1b[2m{}\x1b[0m", t!("help.interactive"));
+    eprintln!("  c <number>            \x1b[2m{}\x1b[0m", t!("help.quick_select"));
+    eprintln!("  c <command...>        \x1b[2m{}\x1b[0m", t!("help.record"));
+    eprintln!("  c -h, --help          \x1b[2m{}\x1b[0m", t!("help.help"));
+    eprintln!("  c -d, --clear         \x1b[2m{}\x1b[0m", t!("help.clear"));
+    eprintln!("  c -s <query>          \x1b[2m{}\x1b[0m", t!("help.search"));
+    eprintln!("  c -a                  \x1b[2m{}\x1b[0m", t!("help.stats"));
+    eprintln!("  c -g                  \x1b[2m{}\x1b[0m", t!("help.global"));
+    eprintln!("  c -l <N>              \x1b[2m{}\x1b[0m", t!("help.limit"));
+    eprintln!("  c -sag <query>        \x1b[2m{}\x1b[0m", t!("help.combined"));
 }
 
 fn run() -> crate::error::Result<()> {
@@ -40,7 +43,7 @@ fn run() -> crate::error::Result<()> {
         CliMode::Interactive => {
             let records = load_commands(&current_dir)?;
             if records.is_empty() {
-                eprintln!("{CCI}no history for this directory");
+                eprintln!("{CCI}{}", t!("msg.no_history_dir"));
                 return Ok(());
             }
             interactive::run(&records)
@@ -49,21 +52,22 @@ fn run() -> crate::error::Result<()> {
         CliMode::QuickSelect(num) => {
             let records = load_commands(&current_dir)?;
             if records.is_empty() {
-                eprintln!("{CCERR}no history for this directory");
+                eprintln!("{CCERR}{}", t!("msg.no_history_dir"));
                 std::process::exit(1);
             }
             let idx = num as usize;
             if idx == 0 || idx > records.len() {
-                eprintln!("{CCERR}entry {} out of range (1-{})", num, records.len());
+                eprintln!("{CCERR}{}", t!("msg.entry_out_of_range", num = num, max = records.len()));
                 std::process::exit(1);
             }
             let record = &records[idx - 1];
-            eprintln!("{CCI}cwd: {}", current_dir.display());
-            eprintln!("{CCI}running: {}", record.command);
+            eprintln!("{CCI}{}", t!("msg.cwd", path = current_dir.display()));
+            eprintln!("{CCI}{} {}",
+                t!("interactive.running_label"), record.command);
             eprintln!("\x1b[2m------------------------\x1b[0m");
             run_command(&record.command)?;
             eprintln!("\x1b[2m------------------------\x1b[0m");
-            eprintln!("{CCOK}command succeeded");
+            eprintln!("{CCOK}{}", t!("msg.command_succeeded"));
             Ok(())
         }
 
@@ -79,13 +83,13 @@ fn run() -> crate::error::Result<()> {
                 print_help();
             }
             if clear_history {
-                eprint!("{CCI}clear history for this directory? (y/N): ");
+                eprint!("{CCI}{} (y/N): ", t!("msg.clear_prompt"));
                 std::io::stderr().flush().ok();
                 let mut input = String::new();
                 std::io::stdin().read_line(&mut input).ok();
                 if input.trim().eq_ignore_ascii_case("y") {
                     clear_commands(&current_dir)?;
-                    eprintln!("{CCOK}history cleared for this directory");
+                    eprintln!("{CCOK}{}", t!("msg.history_cleared"));
                 }
             }
 
@@ -109,7 +113,8 @@ fn run() -> crate::error::Result<()> {
             };
 
             if records.is_empty() {
-                eprintln!("{CCI}no history for {}", if global { "any directory" } else { "this directory" });
+                eprintln!("{CCI}{}",
+                    if global { t!("msg.no_history_global") } else { t!("msg.no_history_dir") });
                 return Ok(());
             }
 
@@ -125,7 +130,7 @@ fn run() -> crate::error::Result<()> {
             };
 
             if filtered.is_empty() {
-                eprintln!("{CCI}no matching history");
+                eprintln!("{CCI}{}", t!("msg.no_matching"));
                 return Ok(());
             }
 
@@ -141,7 +146,7 @@ fn run() -> crate::error::Result<()> {
                     .into_iter().map(|s| s.latest_record).collect();
 
                 if freq_top.is_empty() && recent_top.is_empty() {
-                    eprintln!("{CCI}no matching history");
+                    eprintln!("{CCI}{}", t!("msg.no_matching"));
                     return Ok(());
                 }
                 interactive::run_stats(&freq_top, &recent_top)?;
@@ -156,21 +161,32 @@ fn run() -> crate::error::Result<()> {
             let command = format_args_for_shell(&cmd_args);
             let record = CommandRecord::new(command.clone(), current_dir.clone());
 
-            eprintln!("{CCI}cwd: {}", current_dir.display());
-            eprintln!("{CCI}captured: {}", record.command);
+            eprintln!("{CCI}{}", t!("msg.cwd", path = current_dir.display()));
+            eprintln!("{CCI}{}",
+                t!("msg.captured", command = &record.command));
             eprintln!("\x1b[2m------------------------\x1b[0m");
             run_command(&record.command)?;
             save_command(&record.command, &record.dir)?;
             eprintln!("\x1b[2m------------------------\x1b[0m");
-            eprintln!("{CCOK}command succeeded");
+            eprintln!("{CCOK}{}", t!("msg.command_succeeded"));
             Ok(())
         }
     }
 }
 
 fn main() {
+    // Locale detection priority: C_LOCALE > LANG
+    if let Some(locale) = std::env::var("C_LOCALE").ok().filter(|v| !v.is_empty()) {
+        if locale.starts_with("zh") {
+            rust_i18n::set_locale("zh-CN");
+        }
+    } else if let Some(lang) = std::env::var("LANG").ok() {
+        if lang.starts_with("zh_") {
+            rust_i18n::set_locale("zh-CN");
+        }
+    }
     if let Err(e) = run() {
-        eprintln!("{CCERR}error: {}", e);
+        eprintln!("{CCERR}{}", e);
         std::process::exit(1);
     }
 }
@@ -216,5 +232,35 @@ mod integration_tests {
         assert_eq!(20usize / 2, 10);
         assert_eq!(1usize / 2, 0);
         assert_eq!(2usize / 2, 1);
+    }
+
+    #[test]
+    fn test_locale_keys_match_across_languages() {
+        let en: serde_yaml::Value = serde_yaml::from_str(include_str!("../locales/en.yml")).unwrap();
+        let zh: serde_yaml::Value = serde_yaml::from_str(include_str!("../locales/zh-CN.yml")).unwrap();
+
+        fn collect_keys(val: &serde_yaml::Value, prefix: &str, keys: &mut Vec<String>) {
+            match val {
+                serde_yaml::Value::Mapping(m) => {
+                    for (k, v) in m {
+                        let key = k.as_str().unwrap();
+                        if key.starts_with('_') { continue; }
+                        let full = if prefix.is_empty() { key.to_string() } else { format!("{}.{}", prefix, key) };
+                        collect_keys(v, &full, keys);
+                    }
+                }
+                _ => { keys.push(prefix.to_string()); }
+            }
+        }
+
+        let mut en_keys = Vec::new();
+        let mut zh_keys = Vec::new();
+        collect_keys(&en, "", &mut en_keys);
+        collect_keys(&zh, "", &mut zh_keys);
+
+        en_keys.sort();
+        zh_keys.sort();
+
+        assert_eq!(en_keys, zh_keys, "en.yml and zh-CN.yml must have identical key sets");
     }
 }

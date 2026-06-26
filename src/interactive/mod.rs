@@ -2,6 +2,7 @@ use std::io::Write;
 use crate::cmd::runner::run_command;
 use crate::error::Result;
 use crate::model::CommandRecord;
+use rust_i18n::t;
 
 const DIM: &str = "\x1b[2m";
 const CYAN: &str = "\x1b[36m";
@@ -16,7 +17,7 @@ pub fn run_stats(
 ) -> Result<()> {
     let total = freq_records.len() + recent_records.len();
     if total == 0 {
-        eprintln!("{RED}no matching history{RST}");
+        eprintln!("{RED}{}{RST}", t!("interactive.no_matching"));
         return Ok(());
     }
 
@@ -29,19 +30,19 @@ pub fn run_stats(
     };
 
     loop {
-        eprintln!("{DIM}━━━ Most Frequent ━━━{RST}");
+        eprintln!("{DIM}{}{RST}", t!("interactive.most_frequent"));
         for (i, record) in freq_records.iter().enumerate() {
             eprintln!("{CYAN}【{}】{RST}{}", i + 1, record.command);
         }
 
         eprintln!();
-        eprintln!("{DIM}━━━ Most Recent ━━━{RST}");
+        eprintln!("{DIM}{}{RST}", t!("interactive.most_recent"));
         for (i, record) in recent_records.iter().enumerate() {
             eprintln!("{CYAN}【{}】{RST}{}", freq_records.len() + i + 1, record.command);
         }
 
         eprintln!("{DIM}────────────────────{RST}");
-        eprint!("{DIM}enter number to run (q quit): {RST}");
+        eprint!("{DIM}{}{RST}", t!("interactive.enter_number"));
         std::io::stderr().flush().ok();
 
         let mut input = String::new();
@@ -55,14 +56,14 @@ pub fn run_stats(
         if let Ok(num) = input.parse::<usize>() {
             if num >= 1 && num <= all.len() {
                 let cmd = &all[num - 1].command;
-                eprintln!("{DIM}running: {RST}{}", cmd);
+                eprintln!("{DIM}{}{RST}{}", t!("interactive.running_label"), cmd);
                 eprintln!("{DIM}────────────────────{RST}");
                 run_command(cmd)?;
                 return Ok(());
             }
         }
 
-        eprintln!("{RED}invalid input, enter number or q{RST}");
+                eprintln!("{RED}{}{RST}", t!("interactive.invalid_input"));
     }
 }
 
@@ -70,17 +71,17 @@ pub fn run_stats(
 /// Returns Ok(()) if user quits (q) or after executing a selected command.
 pub fn run(records: &[CommandRecord]) -> Result<()> {
     if records.is_empty() {
-        eprintln!("{RED}no history{RST}");
+        eprintln!("{RED}{}{RST}", t!("interactive.no_history"));
         return Ok(());
     }
 
     loop {
-        eprintln!("{DIM}recent commands:{RST}");
+        eprintln!("{DIM}{}{RST}", t!("interactive.recent"));
         for (i, record) in records.iter().enumerate() {
             eprintln!("{CYAN}【{}】{RST}{}", i + 1, record.command);
         }
         eprintln!("{DIM}────────────────────{RST}");
-        eprint!("{DIM}enter number to run (q quit): {RST}");
+        eprint!("{DIM}{}{RST}", t!("interactive.enter_number"));
         std::io::stderr().flush().ok();
 
         let mut input = String::new();
@@ -94,13 +95,13 @@ pub fn run(records: &[CommandRecord]) -> Result<()> {
         if let Ok(num) = input.parse::<usize>() {
             if num >= 1 && num <= records.len() {
                 let cmd = &records[num - 1].command;
-                eprintln!("{DIM}running: {RST}{}", cmd);
+                eprintln!("{DIM}{}{RST}{}", t!("interactive.running_label"), cmd);
                 eprintln!("{DIM}────────────────────{RST}");
                 run_command(cmd)?;
                 return Ok(());
             }
         }
 
-        eprintln!("{RED}invalid input, enter number or q{RST}");
+                eprintln!("{RED}{}{RST}", t!("interactive.invalid_input"));
     }
 }

@@ -1,0 +1,40 @@
+help:
+  title: "c — 命令缓存与运行器"
+  usage: "用法:"
+  interactive: "交互模式 — 浏览选择历史命令"
+  quick_select: "按编号快速选择历史命令"
+  record: "记录并执行命令"
+  help: "显示帮助"
+  clear: "清除当前目录的历史记录"
+  search: "模糊搜索历史命令"
+  stats: "统计：使用最频繁和最近使用"
+  global: "全局范围（所有目录）"
+  limit: "限制显示条数（默认 10）"
+  combined: "组合参数：搜索 + 统计 + 全局"
+
+interactive:
+  recent: "最近命令:"
+  enter_number: "输入编号执行 (q 退出):"
+  invalid_input: "输入无效，请输入编号或 q"
+  running_label: "执行: "
+  most_frequent: "━━━ 最常使用 ━━━"
+  most_recent: "━━━ 最近使用 ━━━"
+  no_history: "暂无历史记录"
+  no_matching: "无匹配的历史记录"
+
+msg:
+  no_history_dir: "当前目录暂无历史记录"
+  no_history_global: "暂无任何历史记录"
+  no_matching: "无匹配的历史记录"
+  command_succeeded: "命令执行成功"
+  history_cleared: "已清除当前目录的历史记录"
+  clear_prompt: "清除当前目录的历史记录？"
+  cwd: "当前目录: %{path}"
+  captured: "已记录: %{command}"
+  entry_out_of_range: "编号 %{num} 超出范围 (1-%{max})"
+
+error:
+  home_env: "未设置 HOME 环境变量"
+  io: "I/O 错误: %{detail}"
+  command_failed: "命令执行失败，退出码: %{code}"
+  invalid_arg: "`-s` 需要搜索词"
