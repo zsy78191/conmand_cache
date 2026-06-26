@@ -133,31 +133,24 @@ pub fn parse_args(args: &[String]) -> CliMode {
                     }
                 }
             // Known single-char short flags (-h, -d, -s, -a, -g, -l)
+            // Delegates to parse_combined_short_flags to avoid duplicating match logic.
             } else if arg.len() == 2 && arg.starts_with('-') {
-                match arg.chars().nth(1) {
-                    Some('h') => { flags.show_help = true; has_flag = true; }
-                    Some('d') => { flags.clear_history = true; has_flag = true; }
-                    Some('s') => {
-                        has_flag = true;
-                        i += 1;
-                        if i < args.len() {
-                            flags.search = Some(args[i].clone());
+                let token = &arg[1..];
+                match parse_combined_short_flags(token, args, &mut i) {
+                    Some(parsed) => {
+                        flags.show_help |= parsed.show_help;
+                        flags.clear_history |= parsed.clear_history;
+                        if parsed.search.is_some() {
+                            flags.search = parsed.search;
                         }
-                    }
-                    Some('a') => { flags.stats = true; has_flag = true; }
-                    Some('g') => { flags.global = true; has_flag = true; }
-                    Some('l') => {
-                        has_flag = true;
-                        i += 1;
-                        if i < args.len() {
-                            if let Ok(n) = args[i].parse::<u32>() {
-                                if n > 0 {
-                                    flags.limit = Some(n);
-                                }
-                            }
+                        flags.stats |= parsed.stats;
+                        flags.global |= parsed.global;
+                        if parsed.limit.is_some() {
+                            flags.limit = parsed.limit;
                         }
+                        has_flag = true;
                     }
-                    _ => return CliMode::Command(args.to_vec()),
+                    None => return CliMode::Command(args.to_vec()),
                 }
             } else if arg.starts_with('-') {
                 // Multi-char after single `-`: combined short flags
