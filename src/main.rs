@@ -23,12 +23,10 @@ fn run() -> crate::error::Result<()> {
     let current_dir = std::env::current_dir()?;
     let record = CommandRecord::new(command.clone(), current_dir.clone());
 
-    eprintln!(
-        "{CCI}当前路径: {}, 捕获的命令: {}",
-        current_dir.display(),
-        record.command
-    );
+    eprintln!("{CCI}当前路径: {}", current_dir.display());
+    eprintln!("{CCI}捕获的命令: {}", record.command);
 
+    eprintln!("\x1b[2mcc | ------------------------\x1b[0m");
     run_command(&record.command)?;
     save_command(&record.command, &record.dir)?;
     eprintln!("{CCOK}命令执行成功");
