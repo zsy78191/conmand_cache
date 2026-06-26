@@ -134,28 +134,93 @@ shell-escape = "0.2"
 
 ## 测试
 
-新增测试用例：
+### 核心场景（必过）
 
 ```rust
-// 带空格路径
-cc ls -lah "/path/test dir"
-// 期望：记录为 ls -lah '/path/test dir'
-// 执行：sh 正确解析为单个参数 "test dir"
+// 1. 反斜杠转义的空格 — 用户实际输入方式
+cc ls -lah /Users/zhangchao/2026/rust/conmand_cache/context/test\ dir
+// env::args() 拿到: ["ls", "-lah", ".../context/test dir"]
+// 期望记录: ls -lah '/Users/zhangchao/2026/rust/conmand_cache/context/test dir'
+// 执行: sh 正确解析为单个参数
 
-# 含特殊字符
+// 2. 引号包裹的空格 — 等效于反斜杠方式
+cc ls -lah "/Users/zhangchao/2026/rust/conmand_cache/context/test dir"
+// env::args() 拿到: ["ls", "-lah", ".../context/test dir"]
+// 期望记录: ls -lah '/Users/zhangchao/2026/rust/conmand_cache/context/test dir'
+
+// 3. 含单引号的参数
 cc echo "it's working"
-// 期望：记录为 echo 'it'\''s working'
+// env::args() 拿到: ["echo", "it's working"]
+// 期望记录: echo 'it'\''s working'
 
-# 含元字符
+// 4. 含 `$` 元字符 — 阻止变量展开
 cc ls "$HOME/file.txt"
-// 期望：记录为 ls '$HOME/file.txt'（阻止变量展开）
+// 期望记录: ls '$HOME/file.txt'
+
+// 5. 含反引号 — 阻止命令替换
+cc cat file`date`.txt
+// 期望记录: cat 'file`date`.txt'
 ```
 
-## 边界情况
+### Shell 特性保留（sh -c 提供的功能）
 
-- 空参数 `""`：`shell_escape::escape("")` 返回 `"''"`，sh 解析为正确空字符串
-- 纯空格参数 `"   "`：同上，加引号包裹
-- 仅含安全字符的参数（如 `ls`、`-la`）：`shell-escape` 不添加额外引号，保持原样
+```rust
+// 6. 管道
+cc cat file.txt | grep pattern
+// 期望记录: cat file.txt | grep pattern
+
+// 7. && 连接
+cc echo "hello" && echo "world"
+// 期望记录: echo 'hello' && echo 'world'
+
+// 8. 重定向
+cc echo "data" > /tmp/output.txt
+// 期望记录: echo 'data' > /tmp/output.txt
+
+// 9. 分号连接
+cc cd /tmp && pwd; echo "done"
+// 期望记录: cd /tmp && pwd; echo 'done'
+```
+
+### 边界情况
+
+```rust
+// 10. 空参数
+cc echo ""
+// env::args() 拿到: ["echo", ""]
+// 期望记录: echo ''
+
+// 11. 纯空格参数
+cc echo "   "
+// 期望记录: echo '   '
+
+// 12. 仅含安全字符 — 不加多余引号
+cc ls -la /usr/local/bin
+// 期望记录: ls -la /usr/local/bin（保持原样）
+
+// 13. 参数含多个特殊字符
+cc echo "hello $USER `whoami` ; rm -rf /"
+// env::args() 拿到: ["echo", "hello $USER `whoami` ; rm -rf /"]
+// 期望记录: echo 'hello $USER `whoami` ; rm -rf /'
+
+// 14. 参数仅含元字符
+cc echo "$"
+// 期望记录: echo '$'
+
+// 15. 非常长的参数（> 256 chars）
+cc echo "<256-char-string-with-no-spaces>"
+// 期望记录: 原样输出，不添加引号
+
+// 16. 参数含 emoji / Unicode
+cc echo "路径/日本語/🎉"
+// 期望记录: echo '路径/日本語/🎉'
+```
+
+### 测试策略
+
+- `ShellEscapeFormatter::format()` 的单元测试覆盖以上全部 16 条
+- 集成测试：构造 `CommandRecord`，验证 `command` 字段的字符串值
+- 不用 mock `sh -c`，只验证生成的字符串是否正确（runner 行为由标准库保证）
 
 ## 向后兼容
 
