@@ -4,7 +4,7 @@ mod model;
 mod store;
 
 use cmd::runner::run_command;
-use model::{CommandFormatter, CommandRecord, ShellEscapeFormatter};
+use model::{format_args_for_shell, CommandRecord};
 use store::history::save_command;
 
 fn run() -> crate::error::Result<()> {
@@ -14,14 +14,12 @@ fn run() -> crate::error::Result<()> {
         std::process::exit(1);
     }
 
-    let formatter = ShellEscapeFormatter;
-    let arg_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-    let command = formatter.format(&arg_refs);
+    let command = format_args_for_shell(&args);
 
     let current_dir = std::env::current_dir()?;
     let record = CommandRecord::new(command.clone(), current_dir.clone());
 
-    println!(
+    eprintln!(
         "当前路径: {}, 捕获的命令: {}",
         current_dir.display(),
         record.command
@@ -29,7 +27,7 @@ fn run() -> crate::error::Result<()> {
 
     run_command(&record.command)?;
     save_command(&record.command, &record.dir)?;
-    println!("命令执行成功");
+    eprintln!("命令执行成功");
 
     Ok(())
 }

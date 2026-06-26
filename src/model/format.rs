@@ -4,6 +4,22 @@ pub trait CommandFormatter {
     fn format(&self, args: &[&str]) -> String;
 }
 
+/// Format command arguments for shell execution.
+///
+/// - Single argument: pass through raw (user wraps a complete shell command in quotes,
+///   e.g. `c 'curl ... | jq'`). The child `sh` interprets pipes, variables, redirects.
+/// - Multiple arguments: escape each argument individually via [`ShellEscapeFormatter`],
+///   so spaces/special chars in individual args don't cause mis-parsing.
+pub fn format_args_for_shell(args: &[String]) -> String {
+    if args.len() == 1 {
+        args[0].clone()
+    } else {
+        let formatter = ShellEscapeFormatter;
+        let arg_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+        formatter.format(&arg_refs)
+    }
+}
+
 pub struct ShellEscapeFormatter;
 
 impl CommandFormatter for ShellEscapeFormatter {
@@ -162,4 +178,47 @@ mod tests {
         assert_eq!(f.format(&args), "echo abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789");
     }
 
+    // ── format_args_for_shell（单参数 raw passthrough） ──────────────
+
+    #[test]
+    fn test_single_arg_pipeline() {
+        let args: Vec<String> = vec!["curl 'http://example.com' | jq .data".into()];
+        assert_eq!(format_args_for_shell(&args), "curl 'http://example.com' | jq .data");
+    }
+
+    #[test]
+    fn test_single_arg_shell_variable() {
+        let args: Vec<String> = vec!["echo $HOME".into()];
+        assert_eq!(format_args_for_shell(&args), "echo $HOME");
+    }
+
+    #[test]
+    fn test_single_arg_redirect() {
+        let args: Vec<String> = vec!["echo data > /tmp/out.txt".into()];
+        assert_eq!(format_args_for_shell(&args), "echo data > /tmp/out.txt");
+    }
+
+    #[test]
+    fn test_single_arg_simple() {
+        let args: Vec<String> = vec!["echo hello".into()];
+        assert_eq!(format_args_for_shell(&args), "echo hello");
+    }
+
+    #[test]
+    fn test_multi_args_still_escaped() {
+        let args: Vec<String> = vec!["echo".into(), "hello world".into()];
+        assert_eq!(format_args_for_shell(&args), "echo 'hello world'");
+    }
+
+    #[test]
+    fn test_format_args_empty_slice() {
+        let args: Vec<String> = vec![];
+        assert_eq!(format_args_for_shell(&args), "");
+    }
+
+    #[test]
+    fn test_single_arg_semicolon() {
+        let args: Vec<String> = vec!["cd /tmp && pwd; echo done".into()];
+        assert_eq!(format_args_for_shell(&args), "cd /tmp && pwd; echo done");
+    }
 }
