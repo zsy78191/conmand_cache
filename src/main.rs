@@ -29,6 +29,7 @@ fn run() -> crate::error::Result<()> {
     eprintln!("\x1b[2mcc | ------------------------\x1b[0m");
     run_command(&record.command)?;
     save_command(&record.command, &record.dir)?;
+    eprintln!("\x1b[2mcc | ------------------------\x1b[0m");
     eprintln!("{CCOK}命令执行成功");
 
     Ok(())
