@@ -67,7 +67,7 @@ fn run() -> crate::error::Result<()> {
             }
             if clear_history {
                 eprint!("{CCI}确认清除当前目录历史记录？(y/N): ");
-                std::io::stdout().flush().ok();
+                std::io::stderr().flush().ok();
                 let mut input = String::new();
                 std::io::stdin().read_line(&mut input).ok();
                 if input.trim().eq_ignore_ascii_case("y") {
