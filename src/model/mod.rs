@@ -1,5 +1,5 @@
 pub mod format;
-pub use format::{CommandFormatter, SimpleFormatter};
+pub use format::{CommandFormatter, SimpleFormatter, ShellEscapeFormatter};
 
 use std::path::PathBuf;
 
